@@ -1,0 +1,6 @@
+<Solution>
+  <Project Path="Api/Api.csproj" />
+  <Project Path="AppHost/AppHost.csproj" />
+  <Project Path="Contracts/Contracts.csproj" />
+  <Project Path="OrderService/OrderService.csproj" />
+</Solution>
