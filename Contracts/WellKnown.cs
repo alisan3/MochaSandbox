@@ -4,7 +4,9 @@ public static class WellKnown
 {
     public static class RoutingKeys
     {
+        public const string All = "event.order.#";
         public const string OrderPlaced = "event.order.placed";
+        public const string OrderCancelled = "event.order.cancelled";
     }
 
     public static class Exchanges

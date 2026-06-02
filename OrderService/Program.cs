@@ -17,20 +17,26 @@ builder
             .Durable()
             .WithArgument("x-queue-type", RabbitMQQueueType.Quorum);
         t.DeclareBinding(WellKnown.Exchanges.Events, WellKnown.Queues.OrderServiceEvents)
-            .RoutingKey(WellKnown.RoutingKeys.OrderPlaced)
+            //! Multiple routing keys can't be added to the same queue, multiple routes work only with wildcards
+            .RoutingKey(WellKnown.RoutingKeys.All)
+            // .RoutingKey(WellKnown.RoutingKeys.OrderPlaced)
+            // .RoutingKey(WellKnown.RoutingKeys.OrderCancelled)
             .AutoProvision(true);
 
         //! Only if this is set, there is a consumer on the queue
         t.Endpoint("my-endpoint")
             .Handler<OrderPlacedHandler>()
+            .Handler<OrderCancelledHandler>()
             .Queue(WellKnown.Queues.OrderServiceEvents);
     })
     .AddMessage<OrderPlaced>(d =>
     {
-        d.Extend().Configuration.Identity = typeof(OrderPlaced).FullName!;
         d.UseRabbitMQRoutingKey<OrderPlaced>(_ => WellKnown.RoutingKeys.OrderPlaced);
+    })
+    .AddMessage<OrderCancelled>(d =>
+    {
+        d.UseRabbitMQRoutingKey<OrderCancelled>(_ => WellKnown.RoutingKeys.OrderCancelled);
     });
-;
 
 var app = builder.Build();
 

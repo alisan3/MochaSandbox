@@ -14,8 +14,12 @@ builder
     })
     .AddMessage<OrderPlaced>(d =>
     {
-        d.Extend().Configuration.Identity = typeof(OrderPlaced).FullName!;
         d.UseRabbitMQRoutingKey<OrderPlaced>(_ => WellKnown.RoutingKeys.OrderPlaced);
+        d.Publish(r => r.ToExchange(WellKnown.Exchanges.Events));
+    })
+    .AddMessage<OrderCancelled>(d =>
+    {
+        d.UseRabbitMQRoutingKey<OrderCancelled>(_ => WellKnown.RoutingKeys.OrderCancelled);
         d.Publish(r => r.ToExchange(WellKnown.Exchanges.Events));
     });
 
@@ -44,6 +48,21 @@ app.MapPost(
                 orderPlaced.Amount,
                 Status = "Published",
             }
+        );
+    }
+);
+
+app.MapPost(
+    "/orders/{orderId:guid}/cancel",
+    async (Guid orderId, IMessageBus bus, CancellationToken cancellationToken) =>
+    {
+        var orderCancelled = new OrderCancelled(OrderId: orderId);
+
+        await bus.PublishAsync(orderCancelled, cancellationToken);
+
+        return Results.Accepted(
+            $"/orders/{orderCancelled.OrderId}/cancel",
+            new { orderCancelled.OrderId, Status = "Published" }
         );
     }
 );

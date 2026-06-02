@@ -1,4 +1,13 @@
 @baseUrl = http://localhost:5074
+@orderId = 123e4567-e89b-12d3-a456-426614174000
 
+
+### Create a new order
 POST {{baseUrl}}/orders
 Accept: application/json
+
+###  Cancel an order
+POST {{baseUrl}}/orders/{{orderId}}/cancel
+Accept: application/json
+
+
