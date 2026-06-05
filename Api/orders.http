@@ -10,4 +10,8 @@ Accept: application/json
 POST {{baseUrl}}/orders/{{orderId}}/cancel
 Accept: application/json
 
+###  Start the saga
+POST {{baseUrl}}/orders/saga
+Accept: application/json
+
 

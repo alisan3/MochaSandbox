@@ -1,0 +1,34 @@
+using Mocha;
+
+namespace OrderService;
+
+public sealed class GetStockInfoRequestHandler(
+    IMessageBus bus,
+    ILogger<GetStockInfoRequestHandler> logger
+) : IEventRequestHandler<GetStockInfoRequest>
+{
+    public async ValueTask HandleAsync(
+        GetStockInfoRequest request,
+        CancellationToken cancellationToken
+    )
+    {
+        const int availableQuantity = 42;
+        var inStock = request.Quantity <= availableQuantity;
+
+        logger.LogInformation(
+            "Stock check for {OrderId} - {ProductName} x{Quantity}: InStock={InStock}, Available={Available}",
+            request.OrderId,
+            request.ProductName,
+            request.Quantity,
+            inStock,
+            availableQuantity
+        );
+
+        // Send the result back to the saga; correlation is carried by the
+        // GetStockInfoResult.CorrelationId (the OrderId).
+        await bus.PublishAsync(
+            new GetStockInfoResult(request.OrderId, inStock, availableQuantity),
+            cancellationToken
+        );
+    }
+}

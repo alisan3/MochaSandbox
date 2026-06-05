@@ -11,6 +11,7 @@ builder
     .AddRabbitMQ(t =>
     {
         t.DeclareExchange(WellKnown.Exchanges.Events).Type(RabbitMQExchangeType.Topic).Durable();
+        t.DeclareExchange(WellKnown.Exchanges.Commands).Type(RabbitMQExchangeType.Direct).Durable();
     })
     .AddMessage<OrderPlaced>(d =>
     {
@@ -21,6 +22,11 @@ builder
     {
         d.UseRabbitMQRoutingKey<OrderCancelled>(_ => WellKnown.RoutingKeys.OrderCancelled);
         d.Publish(r => r.ToExchange(WellKnown.Exchanges.Events));
+    })
+    .AddMessage<StartOrderSagaCommand>(d =>
+    {
+        d.UseRabbitMQRoutingKey<StartOrderSagaCommand>(_ => WellKnown.RoutingKeys.StartOrderSaga);
+        d.Send(r => r.ToExchange(WellKnown.Exchanges.Commands));
     });
 
 var app = builder.Build();
@@ -63,6 +69,31 @@ app.MapPost(
         return Results.Accepted(
             $"/orders/{orderCancelled.OrderId}/cancel",
             new { orderCancelled.OrderId, Status = "Published" }
+        );
+    }
+);
+
+app.MapPost(
+    "/orders/saga",
+    async (IMessageBus bus, CancellationToken cancellationToken) =>
+    {
+        var command = new StartOrderSagaCommand(
+            OrderId: Guid.NewGuid(),
+            ProductName: "Mechanical Keyboard",
+            Quantity: 3
+        );
+
+        await bus.SendAsync(command, cancellationToken);
+
+        return Results.Accepted(
+            $"/orders/{command.OrderId}",
+            new
+            {
+                command.OrderId,
+                command.ProductName,
+                command.Quantity,
+                Status = "SagaStarted",
+            }
         );
     }
 );
