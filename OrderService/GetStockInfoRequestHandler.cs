@@ -2,10 +2,8 @@ using Mocha;
 
 namespace OrderService;
 
-public sealed class GetStockInfoRequestHandler(
-    IMessageBus bus,
-    ILogger<GetStockInfoRequestHandler> logger
-) : IEventRequestHandler<GetStockInfoRequest, GetStockInfoResult>
+public sealed class GetStockInfoRequestHandler(ILogger<GetStockInfoRequestHandler> logger)
+    : IEventRequestHandler<GetStockInfoRequest, GetStockInfoResult>
 {
     public async ValueTask<GetStockInfoResult> HandleAsync(
         GetStockInfoRequest request,
