@@ -61,21 +61,26 @@ builder
         // The saga consumer identity is the saga type itself.
         t.Endpoint("order-saga-endpoint")
             .Consumer(typeof(OrderSaga))
+            //.Receives<GetStockInfoResult>()
             .Queue(WellKnown.Queues.OrderSagaQueue);
 
         // ── GetStockInfo RPC: the saga calls OrderService itself ────────────────
-        // t.DeclareExchange(WellKnown.Exchanges.Rpc)
-        //     .Type(RabbitMQExchangeType.Direct)
-        //     .Durable()
-        //     .AutoProvision(true);
+        t.DeclareExchange(WellKnown.Exchanges.Rpc)
+            .Type(RabbitMQExchangeType.Direct)
+            .Durable()
+            .AutoProvision(true);
 
         t.DeclareQueue(WellKnown.Queues.StockQueue)
             .Durable()
             .WithArgument("x-queue-type", RabbitMQQueueType.Quorum)
             .AutoProvision(true);
 
-        t.DeclareBinding(WellKnown.Exchanges.Commands, WellKnown.Queues.StockQueue)
+        t.DeclareBinding(WellKnown.Exchanges.Rpc, WellKnown.Queues.StockQueue)
             .RoutingKey(WellKnown.RoutingKeys.GetStockInfoRequest)
+            .AutoProvision(true);
+
+        t.DeclareBinding(WellKnown.Exchanges.Rpc, WellKnown.Queues.OrderSagaQueue)
+            .RoutingKey(WellKnown.RoutingKeys.GetStockInfoResult)
             .AutoProvision(true);
 
         t.Endpoint("stock-endpoint")
@@ -106,12 +111,12 @@ builder
         d.UseRabbitMQRoutingKey<GetStockInfoRequest>(_ =>
             WellKnown.RoutingKeys.GetStockInfoRequest
         );
-        d.Publish(r => r.ToExchange(WellKnown.Exchanges.Commands));
+        d.Send(r => r.ToExchange(WellKnown.Exchanges.Rpc));
     })
     .AddMessage<GetStockInfoResult>(d =>
     {
         d.UseRabbitMQRoutingKey<GetStockInfoResult>(_ => WellKnown.RoutingKeys.GetStockInfoResult);
-        d.Publish(r => r.ToExchange(WellKnown.Exchanges.Events));
+        //d.Publish(r => r.ToExchange(WellKnown.Exchanges.Rpc));
     });
 ;
 

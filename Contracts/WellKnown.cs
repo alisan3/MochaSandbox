@@ -18,7 +18,7 @@ public static class WellKnown
     {
         public const string Events = "events.exchange";
         public const string Commands = "commands.exchange";
-        //public const string Rpc = "rpc.exchange";
+        public const string Rpc = "rpc.exchange";
     }
 
     public static class Queues

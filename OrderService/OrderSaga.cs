@@ -34,7 +34,7 @@ public sealed class OrderSaga : Saga<OrderSagaState>
                 ProductName = command.ProductName,
                 Quantity = command.Quantity,
             })
-            .Publish(
+            .Send(
                 (_, state) =>
                     new GetStockInfoRequest(state.OrderId, state.ProductName, state.Quantity)
             )
@@ -43,7 +43,7 @@ public sealed class OrderSaga : Saga<OrderSagaState>
         // Handles the GetStockInfoResult sent back by GetStockInfoHandler.
         descriptor
             .During(AwaitingStock)
-            .OnSend<GetStockInfoResult>()
+            .OnReply<GetStockInfoResult>()
             .Then(
                 (state, reply) =>
                 {

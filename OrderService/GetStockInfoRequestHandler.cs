@@ -5,9 +5,9 @@ namespace OrderService;
 public sealed class GetStockInfoRequestHandler(
     IMessageBus bus,
     ILogger<GetStockInfoRequestHandler> logger
-) : IEventRequestHandler<GetStockInfoRequest>
+) : IEventRequestHandler<GetStockInfoRequest, GetStockInfoResult>
 {
-    public async ValueTask HandleAsync(
+    public async ValueTask<GetStockInfoResult> HandleAsync(
         GetStockInfoRequest request,
         CancellationToken cancellationToken
     )
@@ -26,9 +26,11 @@ public sealed class GetStockInfoRequestHandler(
 
         // Send the result back to the saga; correlation is carried by the
         // GetStockInfoResult.CorrelationId (the OrderId).
-        await bus.PublishAsync(
-            new GetStockInfoResult(request.OrderId, inStock, availableQuantity),
-            cancellationToken
-        );
+        // await bus.PublishAsync(
+        //     new GetStockInfoResult(request.OrderId, inStock, availableQuantity),
+        //     cancellationToken
+        // );
+
+        return new GetStockInfoResult(request.OrderId, inStock, availableQuantity);
     }
 }
