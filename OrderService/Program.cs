@@ -116,7 +116,7 @@ builder
     .AddMessage<GetStockInfoResult>(d =>
     {
         d.UseRabbitMQRoutingKey<GetStockInfoResult>(_ => WellKnown.RoutingKeys.GetStockInfoResult);
-        //d.Publish(r => r.ToExchange(WellKnown.Exchanges.Rpc));
+        d.Send(r => r.ToExchange(WellKnown.Exchanges.Rpc));
     });
 ;
 
