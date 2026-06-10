@@ -12,7 +12,7 @@ public sealed record GetStockInfoRequest(Guid OrderId, string ProductName, int Q
 // set to the OrderId), because saga request/reply (OnReply) is not yet supported
 // over RabbitMQ in Mocha 16.0.3.
 public sealed record GetStockInfoResult(Guid OrderId, bool InStock, int AvailableQuantity)
-    : ICorrelatable
+//: ICorrelatable
 {
-    public Guid? CorrelationId => OrderId;
+    //public Guid? CorrelationId => OrderId;
 }

@@ -79,12 +79,13 @@ builder
             .RoutingKey(WellKnown.RoutingKeys.GetStockInfoRequest)
             .AutoProvision(true);
 
-        t.DeclareBinding(WellKnown.Exchanges.Rpc, WellKnown.Queues.OrderSagaQueue)
+        t.DeclareBinding(WellKnown.Exchanges.Events, WellKnown.Queues.OrderSagaQueue)
             .RoutingKey(WellKnown.RoutingKeys.GetStockInfoResult)
             .AutoProvision(true);
 
         t.Endpoint("stock-endpoint")
             .Handler<GetStockInfoRequestHandler>()
+            //.Receives<GetStockInfoRequest>()
             .Queue(WellKnown.Queues.StockQueue);
 
         // Routes the saga's outbound GetStockInfo to the stock queue. With
@@ -103,8 +104,10 @@ builder
         // where the saga's OnSend<GetStockInfoResult> route picks it up and
         // correlates it to the running instance via ICorrelatable.
         // t.DispatchEndpoint("saga-result-dispatch")
-        //     .ToQueue(WellKnown.Queues.OrderSagaQueue)
-        //     .Send<GetStockInfoResult>();
+        //     .ToExchange(WellKnown.Exchanges.Events)
+        //     //.ToQueue(WellKnown.Queues.OrderSagaQueue)
+        //     .Send<GetStockInfoResult>()
+        // ;
     })
     .AddMessage<GetStockInfoRequest>(d =>
     {
@@ -116,7 +119,7 @@ builder
     .AddMessage<GetStockInfoResult>(d =>
     {
         d.UseRabbitMQRoutingKey<GetStockInfoResult>(_ => WellKnown.RoutingKeys.GetStockInfoResult);
-        d.Send(r => r.ToExchange(WellKnown.Exchanges.Rpc));
+        //d.Send(r => r.ToExchange(WellKnown.Exchanges.Events));
     });
 ;
 
