@@ -13,7 +13,7 @@ builder
     .AddOrderService()
     .AddRabbitMQ(t =>
     {
-        t.BindHandlersExplicitly(); // no per-handler auto queues/consumers
+        t.BindExplicitly(); // no per-handler auto queues/consumers
         t.AutoProvision(false); // don't declare anything not opted-in
 
         t.DeclareExchange(WellKnown.Exchanges.Events)
@@ -27,17 +27,21 @@ builder
             .AutoProvision(true);
 
         t.DeclareBinding(WellKnown.Exchanges.Events, WellKnown.Queues.OrderServiceQueue)
-            //! Multiple routing keys can't be added to the same queue, multiple routes work only with wildcards
-            .RoutingKey(WellKnown.RoutingKeys.All)
-            // .RoutingKey(WellKnown.RoutingKeys.OrderPlaced)
-            // .RoutingKey(WellKnown.RoutingKeys.OrderCancelled)
+            .RoutingKey(WellKnown.RoutingKeys.OrderPlaced)
             .AutoProvision(true);
 
-        //! Only if this is set, there is a consumer on the queue
-        t.Endpoint("my-endpoint")
+        t.DeclareBinding(WellKnown.Exchanges.Events, WellKnown.Queues.OrderServiceQueue)
+            .RoutingKey(WellKnown.RoutingKeys.OrderCancelled)
+            .AutoProvision(true);
+
+        t.Queue(WellKnown.Queues.OrderServiceQueue)
+            .Durable()
+            .WithArgument("x-queue-type", RabbitMQQueueType.Quorum)
+            .AutoProvision(true)
+            .BindExplicitly()
             .Handler<OrderPlacedHandler>()
             .Handler<OrderCancelledHandler>()
-            .Queue(WellKnown.Queues.OrderServiceQueue);
+            .Handler<GetPriceInfoRequestHandler>();
 
         // ── OrderSaga: triggered by StartOrderSagaCommand from the Api ──────────
         t.DeclareExchange(WellKnown.Exchanges.Commands)
@@ -45,24 +49,21 @@ builder
             .Durable()
             .AutoProvision(true);
 
-        t.DeclareQueue(WellKnown.Queues.OrderSagaQueue)
-            .Durable()
-            .WithArgument("x-queue-type", RabbitMQQueueType.Quorum)
-            .AutoProvision(true);
+        // t.DeclareQueue(WellKnown.Queues.OrderSagaQueue)
+        //     .Durable()
+        //     .WithArgument("x-queue-type", RabbitMQQueueType.Quorum)
+        //     .AutoProvision(true);
 
         t.DeclareBinding(WellKnown.Exchanges.Commands, WellKnown.Queues.OrderSagaQueue)
             .RoutingKey(WellKnown.RoutingKeys.StartOrderSaga)
             .AutoProvision(true);
 
-        t.DeclareBinding(WellKnown.Exchanges.Events, WellKnown.Queues.OrderSagaQueue)
-            .RoutingKey(WellKnown.RoutingKeys.GetStockInfoResult)
-            .AutoProvision(true);
-
-        // The saga consumer identity is the saga type itself.
-        t.Endpoint("order-saga-endpoint")
-            .Consumer(typeof(OrderSaga))
-            //.Receives<GetStockInfoResult>()
-            .Queue(WellKnown.Queues.OrderSagaQueue);
+        t.Queue(WellKnown.Queues.OrderSagaQueue)
+            .Durable()
+            .WithArgument("x-queue-type", RabbitMQQueueType.Quorum)
+            .AutoProvision(true)
+            .BindExplicitly()
+            .Consumer(typeof(OrderSaga));
 
         // ── GetStockInfo RPC: the saga calls OrderService itself ────────────────
         t.DeclareExchange(WellKnown.Exchanges.Rpc)
@@ -83,10 +84,25 @@ builder
             .RoutingKey(WellKnown.RoutingKeys.GetStockInfoResult)
             .AutoProvision(true);
 
-        t.Endpoint("stock-endpoint")
-            .Handler<GetStockInfoRequestHandler>()
-            //.Receives<GetStockInfoRequest>()
-            .Queue(WellKnown.Queues.StockQueue);
+        t.DeclareBinding(WellKnown.Exchanges.Events, WellKnown.Queues.OrderServiceQueue)
+            .RoutingKey(WellKnown.RoutingKeys.GetPriceInfoRequest)
+            .AutoProvision(true);
+
+        t.DeclareBinding(WellKnown.Exchanges.Events, WellKnown.Queues.OrderSagaQueue)
+            .RoutingKey(WellKnown.RoutingKeys.GetPriceInfoResult)
+            .AutoProvision(true);
+
+        // The saga self-sends OrderReadyToComplete once all responses are in.
+        t.DeclareBinding(WellKnown.Exchanges.Events, WellKnown.Queues.OrderSagaQueue)
+            .RoutingKey(WellKnown.RoutingKeys.OrderReadyToComplete)
+            .AutoProvision(true);
+
+        t.Queue(WellKnown.Queues.StockQueue)
+            .Durable()
+            .WithArgument("x-queue-type", RabbitMQQueueType.Quorum)
+            .AutoProvision(true)
+            .BindExplicitly()
+            .Handler<GetStockInfoRequestHandler>();
 
         // Routes the saga's outbound GetStockInfo to the stock queue. With
         // AutoProvision(false) + BindHandlersExplicitly() an explicit dispatch
@@ -120,8 +136,26 @@ builder
     {
         d.UseRabbitMQRoutingKey<GetStockInfoResult>(_ => WellKnown.RoutingKeys.GetStockInfoResult);
         //d.Send(r => r.ToExchange(WellKnown.Exchanges.Events));
+    })
+    .AddMessage<GetPriceInfoRequest>(d =>
+    {
+        d.UseRabbitMQRoutingKey<GetPriceInfoRequest>(_ =>
+            WellKnown.RoutingKeys.GetPriceInfoRequest
+        );
+        d.Send(r => r.ToExchange(WellKnown.Exchanges.Events));
+    })
+    .AddMessage<GetPriceInfoResult>(d =>
+    {
+        d.UseRabbitMQRoutingKey<GetPriceInfoResult>(_ => WellKnown.RoutingKeys.GetPriceInfoResult);
+        d.Send(r => r.ToExchange(WellKnown.Exchanges.Events));
+    })
+    .AddMessage<OrderReadyToComplete>(d =>
+    {
+        d.UseRabbitMQRoutingKey<OrderReadyToComplete>(_ =>
+            WellKnown.RoutingKeys.OrderReadyToComplete
+        );
+        d.Send(r => r.ToExchange(WellKnown.Exchanges.Events));
     });
-;
 
 // Saga state persistence (development/in-memory).
 builder.Services.AddInMemorySagas();

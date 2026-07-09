@@ -1,11 +1,4 @@
-using Mocha;
-using Mocha.Sagas;
-
-namespace OrderService;
-
-// One-way command the saga sends to OrderService itself to check stock.
-public sealed record GetStockInfoRequest(Guid OrderId, string ProductName, int Quantity)
-    : IEventRequest<GetStockInfoResult>;
+namespace Contracts;
 
 // The stock-check result is sent back to the saga. It is correlated to the
 // running saga instance via ICorrelatable.CorrelationId (the saga state's Id is

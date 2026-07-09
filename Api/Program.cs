@@ -10,8 +10,12 @@ builder
     .Services.AddMessageBus()
     .AddRabbitMQ(t =>
     {
+        t.BindExplicitly(); // no per-handler auto queues/consumers
+        t.AutoProvision(false); // don't declare anything not opted-in
+
         t.DeclareExchange(WellKnown.Exchanges.Events).Type(RabbitMQExchangeType.Topic).Durable();
         t.DeclareExchange(WellKnown.Exchanges.Commands).Type(RabbitMQExchangeType.Direct).Durable();
+        t.DeclareExchange(WellKnown.Exchanges.Rpc).Type(RabbitMQExchangeType.Direct).Durable();
     })
     .AddMessage<OrderPlaced>(d =>
     {
@@ -27,6 +31,13 @@ builder
     {
         d.UseRabbitMQRoutingKey<StartOrderSagaCommand>(_ => WellKnown.RoutingKeys.StartOrderSaga);
         d.Send(r => r.ToExchange(WellKnown.Exchanges.Commands));
+    })
+    .AddMessage<GetStockInfoRequest>(d =>
+    {
+        d.UseRabbitMQRoutingKey<GetStockInfoRequest>(_ =>
+            WellKnown.RoutingKeys.GetStockInfoRequest
+        );
+        d.Send(r => r.ToExchange(WellKnown.Exchanges.Rpc));
     });
 
 var app = builder.Build();
@@ -93,6 +104,30 @@ app.MapPost(
                 command.ProductName,
                 command.Quantity,
                 Status = "SagaStarted",
+            }
+        );
+    }
+);
+
+app.MapPost(
+    "/orders/stockinfo",
+    async (IMessageBus bus, CancellationToken cancellationToken) =>
+    {
+        var request = new GetStockInfoRequest(
+            OrderId: Guid.NewGuid(),
+            ProductName: "Mechanical Keyboard",
+            Quantity: 3
+        );
+
+        var result = await bus.RequestAsync(request, cancellationToken);
+
+        return Results.Accepted(
+            $"/orders/{request.OrderId}/stockinfo",
+            new
+            {
+                result.InStock,
+                result.AvailableQuantity,
+                Status = "StockInfoRetrieved",
             }
         );
     }

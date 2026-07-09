@@ -10,11 +10,14 @@ public sealed class OrderSagaState : SagaStateBase
     public int Quantity { get; set; }
     public bool InStock { get; set; }
     public int AvailableQuantity { get; set; }
+    public decimal Price { get; set; }
+
+    public bool AllTasksFinished => InStock && Price > 0;
 }
 
 public sealed class OrderSaga : Saga<OrderSagaState>
 {
-    private const string AwaitingStock = nameof(AwaitingStock);
+    private const string AwaitingResponses = nameof(AwaitingResponses);
     private const string Completed = nameof(Completed);
 
     protected override void Configure(ISagaDescriptor<OrderSagaState> descriptor)
@@ -38,11 +41,15 @@ public sealed class OrderSaga : Saga<OrderSagaState>
                 (_, state) =>
                     new GetStockInfoRequest(state.OrderId, state.ProductName, state.Quantity)
             )
-            .TransitionTo(AwaitingStock);
+            .Send(
+                (_, state) =>
+                    new GetPriceInfoRequest(state.OrderId, state.ProductName, state.Quantity)
+            )
+            .TransitionTo(AwaitingResponses);
 
         // Handles the GetStockInfoResult sent back by GetStockInfoHandler.
         descriptor
-            .During(AwaitingStock)
+            .During(AwaitingResponses)
             .OnReply<GetStockInfoResult>()
             .Then(
                 (state, reply) =>
@@ -51,7 +58,29 @@ public sealed class OrderSaga : Saga<OrderSagaState>
                     state.AvailableQuantity = reply.AvailableQuantity;
                 }
             )
-            .TransitionTo(Completed);
+            .TransitionTo(AwaitingResponses);
+
+        descriptor
+            .During(AwaitingResponses)
+            .OnSend<GetPriceInfoResult>()
+            .Then(
+                (state, reply) =>
+                {
+                    state.Price = reply.Price;
+                }
+            )
+            .TransitionTo(AwaitingResponses);
+
+        descriptor
+            .During(AwaitingResponses)
+            .OnEntry()
+            .Send(
+                (_, state) =>
+                    state.AllTasksFinished ? new OrderReadyToComplete(state.OrderId) : null,
+                null
+            );
+
+        descriptor.During(AwaitingResponses).OnSend<OrderReadyToComplete>().TransitionTo(Completed);
 
         descriptor.Finally(Completed);
     }

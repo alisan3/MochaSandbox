@@ -1,3 +1,4 @@
+using Contracts;
 using Mocha;
 
 namespace OrderService;

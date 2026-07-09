@@ -12,6 +12,12 @@ public static class WellKnown
         public const string StartOrderSaga = "command.order.start-saga";
         public const string GetStockInfoRequest = "request.stock.get-info";
         public const string GetStockInfoResult = "response.stock.get-info";
+
+        public const string GetPriceInfoRequest = "request.price.get-info";
+        public const string GetPriceInfoResult = "response.price.get-info";
+
+        // Internal saga completion signal (saga sends it to itself).
+        public const string OrderReadyToComplete = "internal.order.ready-to-complete";
     }
 
     public static class Exchanges

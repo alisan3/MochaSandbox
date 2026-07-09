@@ -6,12 +6,12 @@
   </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="Aspire.RabbitMQ.Client" Version="13.1.2" />
-    <PackageReference Include="Mocha" Version="16.1.4-p.4" />
-    <PackageReference Include="Mocha.Analyzers" Version="16.1.4-p.4">
+    <PackageReference Include="Mocha" Version="16.2.3" />
+    <PackageReference Include="Mocha.Analyzers" Version="16.2.3">
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
       <PrivateAssets>all</PrivateAssets>
     </PackageReference>
-    <PackageReference Include="Mocha.Transport.RabbitMQ" Version="16.1.4-p.4" />
+    <PackageReference Include="Mocha.Transport.RabbitMQ" Version="16.2.3" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\Contracts\Contracts.csproj" />

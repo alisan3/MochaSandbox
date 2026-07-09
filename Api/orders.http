@@ -15,3 +15,8 @@ POST {{baseUrl}}/orders/saga
 Accept: application/json
 
 
+###  Get stock info
+POST {{baseUrl}}/orders/stockinfo
+Accept: application/json
+
+
