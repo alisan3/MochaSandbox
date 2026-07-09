@@ -73,6 +73,10 @@ builder
             .WithArgument("x-queue-type", RabbitMQQueueType.Quorum)
             .AutoProvision(true)
             .BindExplicitly()
+            // Contrast case: serialize saga processing so the concurrent fan-in
+            // responses are handled one at a time (no lost updates).
+            // .MaxConcurrency(1)
+            // .MaxPrefetch(1)
             .Consumer(typeof(OrderSaga));
 
         // ── GetStockInfo RPC: the saga calls OrderService itself ────────────────
