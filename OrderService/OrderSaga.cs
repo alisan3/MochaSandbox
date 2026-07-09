@@ -11,8 +11,18 @@ public sealed class OrderSagaState : SagaStateBase
     public bool InStock { get; set; }
     public int AvailableQuantity { get; set; }
     public decimal Price { get; set; }
+    public decimal ShippingCost { get; set; }
+    public decimal TaxAmount { get; set; }
+    public decimal DiscountPercentage { get; set; }
 
     public bool AllTasksFinished => InStock && Price > 0;
+
+    public int TasksCompletedCount =>
+        (InStock ? 1 : 0)
+        + (Price > 0 ? 1 : 0)
+        + (ShippingCost > 0 ? 1 : 0)
+        + (TaxAmount > 0 ? 1 : 0)
+        + (DiscountPercentage > 0 ? 1 : 0);
 }
 
 public sealed class OrderSaga : Saga<OrderSagaState>
@@ -45,6 +55,18 @@ public sealed class OrderSaga : Saga<OrderSagaState>
                 (_, state) =>
                     new GetPriceInfoRequest(state.OrderId, state.ProductName, state.Quantity)
             )
+            .Send(
+                (_, state) =>
+                    new GetShippingInfoRequest(state.OrderId, state.ProductName, state.Quantity)
+            )
+            .Send(
+                (_, state) =>
+                    new GetTaxInfoRequest(state.OrderId, state.ProductName, state.Quantity)
+            )
+            .Send(
+                (_, state) =>
+                    new GetDiscountInfoRequest(state.OrderId, state.ProductName, state.Quantity)
+            )
             .TransitionTo(AwaitingResponses);
 
         // Handles the GetStockInfoResult sent back by GetStockInfoHandler.
@@ -67,6 +89,39 @@ public sealed class OrderSaga : Saga<OrderSagaState>
                 (state, reply) =>
                 {
                     state.Price = reply.Price;
+                }
+            )
+            .TransitionTo(AwaitingResponses);
+
+        descriptor
+            .During(AwaitingResponses)
+            .OnSend<GetShippingInfoResult>()
+            .Then(
+                (state, reply) =>
+                {
+                    state.ShippingCost = reply.ShippingCost;
+                }
+            )
+            .TransitionTo(AwaitingResponses);
+
+        descriptor
+            .During(AwaitingResponses)
+            .OnSend<GetTaxInfoResult>()
+            .Then(
+                (state, reply) =>
+                {
+                    state.TaxAmount = reply.TaxAmount;
+                }
+            )
+            .TransitionTo(AwaitingResponses);
+
+        descriptor
+            .During(AwaitingResponses)
+            .OnSend<GetDiscountInfoResult>()
+            .Then(
+                (state, reply) =>
+                {
+                    state.DiscountPercentage = reply.DiscountPercentage;
                 }
             )
             .TransitionTo(AwaitingResponses);

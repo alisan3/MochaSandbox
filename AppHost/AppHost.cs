@@ -16,8 +16,26 @@ var rabbitmq = builder
     .WithManagementPlugin(port: 15672)
     .WithLifetime(ContainerLifetime.Persistent);
 
+var postgresPassword = builder.AddParameter(
+    "postgres-password",
+    "postgres",
+    publishValueAsDefault: true
+);
+
+var postgres = builder
+    .AddPostgres("postgres", password: postgresPassword, port: 6432)
+    .WithDataVolume()
+    .WithLifetime(ContainerLifetime.Persistent);
+
+var sagaDb = postgres.AddDatabase("sagadb");
+
 builder.AddProject<Projects.Api>("api").WithReference(rabbitmq).WaitFor(rabbitmq);
 
-builder.AddProject<Projects.OrderService>("orderservice").WithReference(rabbitmq).WaitFor(rabbitmq);
+builder
+    .AddProject<Projects.OrderService>("orderservice")
+    .WithReference(rabbitmq)
+    .WaitFor(rabbitmq)
+    .WithReference(sagaDb)
+    .WaitFor(sagaDb);
 
 builder.Build().Run();

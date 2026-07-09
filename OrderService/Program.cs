@@ -1,5 +1,7 @@
 using Contracts;
+using Microsoft.EntityFrameworkCore;
 using Mocha;
+using Mocha.EntityFrameworkCore;
 using Mocha.Sagas;
 using Mocha.Transport.RabbitMQ;
 using OrderService;
@@ -7,6 +9,9 @@ using OrderService;
 var builder = WebApplication.CreateBuilder(args);
 
 builder.AddRabbitMQClient("rabbitmq");
+builder.Services.AddDbContext<OrderSagaDbContext>(o =>
+    o.UseNpgsql(builder.Configuration.GetConnectionString("sagadb"))
+);
 
 builder
     .Services.AddMessageBus()
@@ -41,7 +46,10 @@ builder
             .BindExplicitly()
             .Handler<OrderPlacedHandler>()
             .Handler<OrderCancelledHandler>()
-            .Handler<GetPriceInfoRequestHandler>();
+            .Handler<GetPriceInfoRequestHandler>()
+            .Handler<GetShippingInfoRequestHandler>()
+            .Handler<GetTaxInfoRequestHandler>()
+            .Handler<GetDiscountInfoRequestHandler>();
 
         // ── OrderSaga: triggered by StartOrderSagaCommand from the Api ──────────
         t.DeclareExchange(WellKnown.Exchanges.Commands)
@@ -92,6 +100,32 @@ builder
             .RoutingKey(WellKnown.RoutingKeys.GetPriceInfoResult)
             .AutoProvision(true);
 
+        // Shipping / Tax / Discount requests -> OrderServiceQueue (handlers),
+        // their results -> OrderSagaQueue (saga OnSend transitions).
+        t.DeclareBinding(WellKnown.Exchanges.Events, WellKnown.Queues.OrderServiceQueue)
+            .RoutingKey(WellKnown.RoutingKeys.GetShippingInfoRequest)
+            .AutoProvision(true);
+
+        t.DeclareBinding(WellKnown.Exchanges.Events, WellKnown.Queues.OrderSagaQueue)
+            .RoutingKey(WellKnown.RoutingKeys.GetShippingInfoResult)
+            .AutoProvision(true);
+
+        t.DeclareBinding(WellKnown.Exchanges.Events, WellKnown.Queues.OrderServiceQueue)
+            .RoutingKey(WellKnown.RoutingKeys.GetTaxInfoRequest)
+            .AutoProvision(true);
+
+        t.DeclareBinding(WellKnown.Exchanges.Events, WellKnown.Queues.OrderSagaQueue)
+            .RoutingKey(WellKnown.RoutingKeys.GetTaxInfoResult)
+            .AutoProvision(true);
+
+        t.DeclareBinding(WellKnown.Exchanges.Events, WellKnown.Queues.OrderServiceQueue)
+            .RoutingKey(WellKnown.RoutingKeys.GetDiscountInfoRequest)
+            .AutoProvision(true);
+
+        t.DeclareBinding(WellKnown.Exchanges.Events, WellKnown.Queues.OrderSagaQueue)
+            .RoutingKey(WellKnown.RoutingKeys.GetDiscountInfoResult)
+            .AutoProvision(true);
+
         // The saga self-sends OrderReadyToComplete once all responses are in.
         t.DeclareBinding(WellKnown.Exchanges.Events, WellKnown.Queues.OrderSagaQueue)
             .RoutingKey(WellKnown.RoutingKeys.OrderReadyToComplete)
@@ -103,27 +137,18 @@ builder
             .AutoProvision(true)
             .BindExplicitly()
             .Handler<GetStockInfoRequestHandler>();
-
-        // Routes the saga's outbound GetStockInfo to the stock queue. With
-        // AutoProvision(false) + BindHandlersExplicitly() an explicit dispatch
-        // endpoint is REQUIRED: the saga's .Send resolves via the convention
-        // (CreateEndpointConfiguration(OutboundRoute)) which ignores any
-        // AddMessage(...).Send(ToRabbitMQQueue(...)) destination and would route to
-        // an unbound convention exchange (message dropped). ToQueue publishes to the
-        // default exchange with the routing key set to the queue name, delivering
-        // the message straight to the handler's queue.
-        // t.DispatchEndpoint("stock-dispatch")
-        //     .ToQueue(WellKnown.Queues.StockQueue)
-        //     .Send<GetStockInfo>();
-
-        // The handler sends GetStockInfoResult back to the saga's own queue,
-        // where the saga's OnSend<GetStockInfoResult> route picks it up and
-        // correlates it to the running instance via ICorrelatable.
-        // t.DispatchEndpoint("saga-result-dispatch")
-        //     .ToExchange(WellKnown.Exchanges.Events)
-        //     //.ToQueue(WellKnown.Queues.OrderSagaQueue)
-        //     .Send<GetStockInfoResult>()
-        // ;
+    })
+    .AddEntityFramework<OrderSagaDbContext>(p =>
+    {
+        p.UseTransaction();
+        p.AddSagaCore();
+    })
+    .AddMessage<StartOrderSagaCommand>(d =>
+    {
+        // Register the command type so the inbound URN
+        // (urn:message:contracts:start-order-saga-command) resolves to the CLR
+        // type and the saga's OnSend<StartOrderSagaCommand> route matches.
+        d.UseRabbitMQRoutingKey<StartOrderSagaCommand>(_ => WellKnown.RoutingKeys.StartOrderSaga);
     })
     .AddMessage<GetStockInfoRequest>(d =>
     {
@@ -149,6 +174,44 @@ builder
         d.UseRabbitMQRoutingKey<GetPriceInfoResult>(_ => WellKnown.RoutingKeys.GetPriceInfoResult);
         d.Send(r => r.ToExchange(WellKnown.Exchanges.Events));
     })
+    .AddMessage<GetShippingInfoRequest>(d =>
+    {
+        d.UseRabbitMQRoutingKey<GetShippingInfoRequest>(_ =>
+            WellKnown.RoutingKeys.GetShippingInfoRequest
+        );
+        d.Send(r => r.ToExchange(WellKnown.Exchanges.Events));
+    })
+    .AddMessage<GetShippingInfoResult>(d =>
+    {
+        d.UseRabbitMQRoutingKey<GetShippingInfoResult>(_ =>
+            WellKnown.RoutingKeys.GetShippingInfoResult
+        );
+        d.Send(r => r.ToExchange(WellKnown.Exchanges.Events));
+    })
+    .AddMessage<GetTaxInfoRequest>(d =>
+    {
+        d.UseRabbitMQRoutingKey<GetTaxInfoRequest>(_ => WellKnown.RoutingKeys.GetTaxInfoRequest);
+        d.Send(r => r.ToExchange(WellKnown.Exchanges.Events));
+    })
+    .AddMessage<GetTaxInfoResult>(d =>
+    {
+        d.UseRabbitMQRoutingKey<GetTaxInfoResult>(_ => WellKnown.RoutingKeys.GetTaxInfoResult);
+        d.Send(r => r.ToExchange(WellKnown.Exchanges.Events));
+    })
+    .AddMessage<GetDiscountInfoRequest>(d =>
+    {
+        d.UseRabbitMQRoutingKey<GetDiscountInfoRequest>(_ =>
+            WellKnown.RoutingKeys.GetDiscountInfoRequest
+        );
+        d.Send(r => r.ToExchange(WellKnown.Exchanges.Events));
+    })
+    .AddMessage<GetDiscountInfoResult>(d =>
+    {
+        d.UseRabbitMQRoutingKey<GetDiscountInfoResult>(_ =>
+            WellKnown.RoutingKeys.GetDiscountInfoResult
+        );
+        d.Send(r => r.ToExchange(WellKnown.Exchanges.Events));
+    })
     .AddMessage<OrderReadyToComplete>(d =>
     {
         d.UseRabbitMQRoutingKey<OrderReadyToComplete>(_ =>
@@ -157,10 +220,15 @@ builder
         d.Send(r => r.ToExchange(WellKnown.Exchanges.Events));
     });
 
-// Saga state persistence (development/in-memory).
-builder.Services.AddInMemorySagas();
+// Saga state persistence: EF Core + Postgres (see AddEntityFramework above).
 
 var app = builder.Build();
+
+// Apply saga schema migrations at startup.
+using (var scope = app.Services.CreateScope())
+{
+    await scope.ServiceProvider.GetRequiredService<OrderSagaDbContext>().Database.MigrateAsync();
+}
 
 app.MapGet("/", () => Results.Ok(new { Service = "OrderService", Status = "Running" }));
 

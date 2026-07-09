@@ -6,11 +6,18 @@
   </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="Aspire.RabbitMQ.Client" Version="13.1.2" />
+    <PackageReference Include="Aspire.Npgsql.EntityFrameworkCore.PostgreSQL" Version="13.1.2" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="10.0.5">
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+      <PrivateAssets>all</PrivateAssets>
+    </PackageReference>
     <PackageReference Include="Mocha" Version="16.2.3" />
     <PackageReference Include="Mocha.Analyzers" Version="16.2.3">
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
       <PrivateAssets>all</PrivateAssets>
     </PackageReference>
+    <PackageReference Include="Mocha.EntityFrameworkCore" Version="16.2.3" />
+    <PackageReference Include="Mocha.EntityFrameworkCore.Postgres" Version="16.2.3" />
     <PackageReference Include="Mocha.Transport.RabbitMQ" Version="16.2.3" />
   </ItemGroup>
   <ItemGroup>

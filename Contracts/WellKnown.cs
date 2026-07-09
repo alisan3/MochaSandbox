@@ -16,6 +16,15 @@ public static class WellKnown
         public const string GetPriceInfoRequest = "request.price.get-info";
         public const string GetPriceInfoResult = "response.price.get-info";
 
+        public const string GetShippingInfoRequest = "request.shipping.get-info";
+        public const string GetShippingInfoResult = "response.shipping.get-info";
+
+        public const string GetTaxInfoRequest = "request.tax.get-info";
+        public const string GetTaxInfoResult = "response.tax.get-info";
+
+        public const string GetDiscountInfoRequest = "request.discount.get-info";
+        public const string GetDiscountInfoResult = "response.discount.get-info";
+
         // Internal saga completion signal (saga sends it to itself).
         public const string OrderReadyToComplete = "internal.order.ready-to-complete";
     }
