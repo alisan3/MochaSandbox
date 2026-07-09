@@ -11,6 +11,8 @@ var builder = WebApplication.CreateBuilder(args);
 builder.AddRabbitMQClient("rabbitmq");
 builder.Services.AddDbContext<OrderSagaDbContext>(o =>
     o.UseNpgsql(builder.Configuration.GetConnectionString("sagadb"))
+        .EnableSensitiveDataLogging() // show parameter values (version guid, field values) in logs
+        .EnableDetailedErrors() // surface concurrency/save failures with full detail
 );
 
 builder
