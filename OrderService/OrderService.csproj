@@ -5,20 +5,20 @@
     <ImplicitUsings>enable</ImplicitUsings>
   </PropertyGroup>
   <ItemGroup>
-    <PackageReference Include="Aspire.RabbitMQ.Client" Version="13.1.2" />
-    <PackageReference Include="Aspire.Npgsql.EntityFrameworkCore.PostgreSQL" Version="13.1.2" />
-    <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="10.0.5">
+    <PackageReference Include="Aspire.RabbitMQ.Client" />
+    <PackageReference Include="Aspire.Npgsql.EntityFrameworkCore.PostgreSQL" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Design">
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
       <PrivateAssets>all</PrivateAssets>
     </PackageReference>
-    <PackageReference Include="Mocha" Version="16.2.3" />
-    <PackageReference Include="Mocha.Analyzers" Version="16.2.3">
+    <PackageReference Include="Mocha" />
+    <PackageReference Include="Mocha.Analyzers">
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
       <PrivateAssets>all</PrivateAssets>
     </PackageReference>
-    <PackageReference Include="Mocha.EntityFrameworkCore" Version="16.2.3" />
-    <PackageReference Include="Mocha.EntityFrameworkCore.Postgres" Version="16.2.3" />
-    <PackageReference Include="Mocha.Transport.RabbitMQ" Version="16.2.3" />
+    <PackageReference Include="Mocha.EntityFrameworkCore" />
+    <PackageReference Include="Mocha.EntityFrameworkCore.Postgres" />
+    <PackageReference Include="Mocha.Transport.RabbitMQ" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\Contracts\Contracts.csproj" />

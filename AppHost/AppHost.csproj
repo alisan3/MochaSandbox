@@ -7,8 +7,8 @@
     <UserSecretsId>0418f1d6-5fd9-4e35-939d-ee6ee4576433</UserSecretsId>
   </PropertyGroup>
   <ItemGroup>
-    <PackageReference Include="Aspire.Hosting.PostgreSQL" Version="13.1.2" />
-    <PackageReference Include="Aspire.Hosting.RabbitMQ" Version="13.1.2" />
+    <PackageReference Include="Aspire.Hosting.PostgreSQL" />
+    <PackageReference Include="Aspire.Hosting.RabbitMQ" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\Api\Api.csproj" />

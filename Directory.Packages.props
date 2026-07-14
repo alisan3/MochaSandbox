@@ -1,0 +1,17 @@
+<Project>
+  <PropertyGroup>
+    <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageVersion Include="Aspire.Hosting.PostgreSQL" Version="13.1.2" />
+    <PackageVersion Include="Aspire.Hosting.RabbitMQ" Version="13.1.2" />
+    <PackageVersion Include="Aspire.Npgsql.EntityFrameworkCore.PostgreSQL" Version="13.1.2" />
+    <PackageVersion Include="Aspire.RabbitMQ.Client" Version="13.1.2" />
+    <PackageVersion Include="Microsoft.EntityFrameworkCore.Design" Version="10.0.5" />
+    <PackageVersion Include="Mocha" Version="16.5.0-p.18" />
+    <PackageVersion Include="Mocha.Analyzers" Version="16.5.0-p.18" />
+    <PackageVersion Include="Mocha.EntityFrameworkCore" Version="16.5.0-p.18" />
+    <PackageVersion Include="Mocha.EntityFrameworkCore.Postgres" Version="16.5.0-p.18" />
+    <PackageVersion Include="Mocha.Transport.RabbitMQ" Version="16.5.0-p.18" />
+  </ItemGroup>
+</Project>
